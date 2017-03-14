@@ -1,0 +1,6 @@
+pika
+
+# Dev dependencies
+ipython
+jedi==0.10.0
+flake8
