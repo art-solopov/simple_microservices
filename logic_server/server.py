@@ -1,5 +1,8 @@
 import pika
+import json
+
 from .config import CONFIG
+from .actions import registry
 
 # Global channel variable
 channel = None
@@ -31,8 +34,25 @@ def on_queue_declared(frame):
 
 
 def handle_delivery(channel, method, headers, body):
-    print(body)
+    body = json.loads(body)
+    action = body.get('action', None)
+    if action is None:
+        print("Action is missing")
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+        return
+    result = registry[action](body['data'])        
     channel.basic_ack(delivery_tag=method.delivery_tag)
+    if headers.reply_to:
+        corr_id = headers.correlation_id
+        channel.basic_publish(
+            exchange='',
+            routing_key=headers.reply_to,
+            properties=pika.BasicProperties(
+                correlation_id=corr_id,
+                content_type='application/json'
+            ),
+            body=json.dumps(result)
+        )
 
 
 def start():
