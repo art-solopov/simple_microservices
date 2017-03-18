@@ -1,9 +1,9 @@
 import pika
-
+from .config import CONFIG
 
 # Global channel variable
 channel = None
-queue = 'test'
+queue = None
 
 
 def on_connected(connection):
@@ -30,14 +30,17 @@ def on_queue_declared(frame):
     channel.basic_consume(handle_delivery, queue=queue)
 
 
-def handle_delivery(channel, method, header, body):
+def handle_delivery(channel, method, headers, body):
     print(body)
+    channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
-conn_params = pika.ConnectionParameters()
-connection = pika.SelectConnection(conn_params, on_connected)
+def start():
+    conn_params = pika.ConnectionParameters()
+    connection = pika.SelectConnection(conn_params, on_connected)
+    global queue
+    queue = CONFIG['queue']
 
-if __name__ == '__main__':
     try:
         connection.ioloop.start()
     except KeyboardInterrupt:
